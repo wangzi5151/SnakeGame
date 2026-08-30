@@ -8,7 +8,7 @@
 *{margin:0;padding:0;box-sizing:border-box;user-select:none;-webkit-tap-highlight-color:transparent}
 html,body{width:100%;height:100%;overflow:hidden;font-family:'PingFang SC',sans-serif}
 body{background:#0a0a1a;display:flex;justify-content:center;align-items:center}
-#app{position:relative;width:100vw;height:100vh;max-width:400px;max-height:720px;display:flex;flex-direction:column;background:#0a0a1a}
+#A{position:relative;width:100vw;height:100vh;max-width:400px;max-height:720px;display:flex;flex-direction:column;background:#0a0a1a}
 .hd{display:flex;justify-content:space-between;padding:14px 18px;z-index:10}
 .pn{background:rgba(22,33,62,.8);border-radius:8px;padding:6px 14px;text-align:center}
 .pn .l{font-size:9px;color:#534b62;text-transform:uppercase}
@@ -16,20 +16,20 @@ body{background:#0a0a1a;display:flex;justify-content:center;align-items:center}
 .cw{flex:1;display:flex;justify-content:center;align-items:center;padding:0 8px}
 canvas{border-radius:10px;background:#0f1629}
 .dp{display:grid;grid-template-columns:repeat(3,56px);grid-template-rows:repeat(3,56px);gap:5px;padding:8px 8px 18px;justify-content:center}
-.db{background:rgba(22,33,62,.6);border:1px solid rgba(0,245,255,.12);border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:20px;color:rgba(255,255,255,.45);cursor:pointer}
-.db:active{background:rgba(0,245,255,.2)}
+.db{background:rgba(22,33,62,.6);border:1px solid rgba(0,245,255,.12);border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:20px;color:rgba(255,255,255,.45);cursor:pointer;transition:transform .08s}
+.db:active{transform:scale(.9);background:rgba(0,245,255,.2)}
 .db.e{background:transparent;border:none}
 .ov{position:absolute;top:0;left:0;width:100%;height:100%;display:none;flex-direction:column;justify-content:center;align-items:center;background:rgba(10,10,26,.92);z-index:20}
 .ov.show{display:flex}
 .ov h2{font-size:32px;color:#fff;margin-bottom:8px}
 .ov p{color:rgba(255,255,255,.45);margin-bottom:20px;font-size:15px}
 .ov .sc{font-size:44px;color:#00f5ff;font-weight:800;margin-bottom:4px}
-.ov button{padding:12px 46px;font-size:17px;color:#fff;background:linear-gradient(135deg,#00f5ff,#0066ff);border:none;border-radius:28px;cursor:pointer;font-weight:700}
-.ov button:active{transform:scale(.96)}
+.ov button{padding:12px 46px;font-size:17px;color:#fff;background:linear-gradient(135deg,#00f5ff,#0066ff);border:none;border-radius:28px;cursor:pointer;font-weight:700;transition:transform .1s}
+.ov button:active{transform:scale(.95)}
 </style>
 </head>
 <body>
-<div id="app">
+<div id="A">
 <div class="hd">
 <div class="pn"><div class="l">分数</div><div class="v" id="sc">0</div></div>
 <div class="pn"><div class="l">最高</div><div class="v" id="bst">0</div></div>
@@ -41,15 +41,21 @@ canvas{border-radius:10px;background:#0f1629}
 <div class="db" id="lB">◀</div><div class="db e"></div><div class="db" id="rB">▶</div>
 <div class="db e"></div><div class="db" id="dB">▼</div><div class="db e"></div>
 </div>
-<div class="ov" id="menu"><h2>🐍 贪吃蛇</h2><p>SNAKE</p><button id="menuBtn">开始游戏</button></div>
-<div class="ov" id="over"><h2>游戏结束</h2><div class="sc" id="fsc">0</div><p id="fmsg"></p><button id="overBtn">再来一次</button></div>
+<div class="ov" id="M"><h2>🐍 贪吃蛇</h2><p>SNAKE</p><button id="MB">开始游戏</button></div>
+<div class="ov" id="O"><h2>游戏结束</h2><div class="sc" id="FS">0</div><p id="FM"></p><button id="OB">再来一次</button></div>
 </div>
 <script>
 (function(){
-var cv=document.getElementById("c"),cx=cv.getContext("2d"),app=document.getElementById("app");
+var cv=document.getElementById("c"),cx=cv.getContext("2d"),app=document.getElementById("A");
 var CELL=16,COLS,ROWS;
+var AC;function initA(){if(!AC)AC=new(window.AudioContext||window.webkitAudioContext)();if(AC.state==="suspended")AC.resume()}
+function tone(f,d,t,v){if(!AC)return;var o=AC.createOscillator(),g=AC.createGain();o.type=t||"sine";o.frequency.value=f;g.gain.setValueAtTime(v||.08,AC.currentTime);g.gain.exponentialRampToValueAtTime(.001,AC.currentTime+d);o.connect(g);g.connect(AC.destination);o.start();o.stop(AC.currentTime+d)}
+function sfxEat(){tone(600,.08,"sine",.1);setTimeout(function(){tone(800,.06,"sine",.08)},40)}
+function sfxSpecial(){tone(880,.1,"sine",.12);setTimeout(function(){tone(1100,.1,"sine",.1)},60)}
+function sfxDie(){tone(200,.2,"sawtooth",.08);setTimeout(function(){tone(120,.3,"sawtooth",.06)},80)}
+
 var snake,dir,nextDir,food,sfood,sfoodT;
-var score,best=+localStorage.getItem("snkBest")||0;
+var score,best=+localStorage.getItem("snkB")||0;
 var state,speed,moveT,particles=[];
 
 function resize(){
@@ -59,13 +65,13 @@ function resize(){
 }
 
 function init(){
-  resize();
+  initA();resize();
   var cx2=Math.floor(COLS/2),cy=Math.floor(ROWS/2);
   snake=[{x:cx2,y:cy},{x:cx2-1,y:cy},{x:cx2-2,y:cy}];
   dir={x:1,y:0};nextDir={x:1,y:0};
   score=0;speed=130;moveT=0;sfood=null;sfoodT=0;particles=[];
   document.getElementById("sc").textContent="0";document.getElementById("ln").textContent="3";
-  document.getElementById("over").classList.remove("show");document.getElementById("menu").classList.add("hidden");
+  document.getElementById("O").classList.remove("show");document.getElementById("M").classList.add("hidden");
   mkFood();state="play";
 }
 
@@ -75,8 +81,7 @@ function mkFood(){
     var ok=true;for(var i=0;i<snake.length;i++)if(snake[i].x===c&&snake[i].y===r){ok=false;break}
     if(ok)empty.push({x:c,y:r});
   }
-  if(empty.length===0)return;
-  food=empty[Math.floor(Math.random()*empty.length)];
+  if(empty.length>0)food=empty[Math.floor(Math.random()*empty.length)];
 }
 
 function mkSF(){
@@ -91,9 +96,7 @@ function mkSF(){
   sfoodT=80;
 }
 
-function addP(x,y,col,n){
-  for(var i=0;i<n;i++)particles.push({x:x*CELL+CELL/2,y:y*CELL+CELL/2,vx:(Math.random()-.5)*5,vy:(Math.random()-.5)*5,life:1,dec:Math.random()*.04+.02,sz:Math.random()*3+1.5,col:col});
-}
+function addP(x,y,col,n){for(var i=0;i<n;i++)particles.push({x:x*CELL+CELL/2,y:y*CELL+CELL/2,vx:(Math.random()-.5)*5,vy:(Math.random()-.5)*5,life:1,dec:.03+Math.random()*.02,sz:Math.random()*3+1.5,col:col})}
 
 function update(dt){
   if(state!=="play")return;
@@ -105,25 +108,18 @@ function update(dt){
   snake.unshift(head);
   var ate=false;
   if(food&&head.x===food.x&&head.y===food.y){
-    score+=10;ate=true;addP(food.x,food.y,"#ff6b6b",8);mkFood();
-    speed=Math.max(55,130-score);
-    if(Math.random()<.35)mkSF();
+    score+=10;ate=true;sfxEat();addP(food.x,food.y,"#ff6b6b",8);mkFood();
+    speed=Math.max(55,130-score);if(Math.random()<.35)mkSF();
   }else if(sfood&&head.x===sfood.x&&head.y===sfood.y){
-    score+=30;ate=true;addP(sfood.x,sfood.y,"#ffd700",15);sfood=null;sfoodT=0;
+    score+=30;ate=true;sfxSpecial();addP(sfood.x,sfood.y,"#ffd700",15);sfood=null;sfoodT=0;
   }
   if(!ate)snake.pop();
   if(sfood){sfoodT--;if(sfoodT<=0)sfood=null}
   document.getElementById("sc").textContent=score;document.getElementById("ln").textContent=snake.length;
-  if(score>best){best=score;localStorage.setItem("snkBest",best);document.getElementById("bst").textContent=best}
+  if(score>best){best=score;localStorage.setItem("snkB",best);document.getElementById("bst").textContent=best}
 }
 
-function die(){
-  state="dead";
-  for(var i=0;i<snake.length;i++)addP(snake[i].x,snake[i].y,"#00f5ff",4);
-  document.getElementById("fsc").textContent=score;
-  document.getElementById("fmsg").textContent="长度: "+snake.length;
-  setTimeout(function(){document.getElementById("over").classList.add("show")},350);
-}
+function die(){state="dead";sfxDie();for(var i=0;i<snake.length;i++)addP(snake[i].x,snake[i].y,"#00f5ff",4);document.getElementById("FS").textContent=score;document.getElementById("FM").textContent="长度: "+snake.length;setTimeout(function(){document.getElementById("O").classList.add("show")},350)}
 
 function draw(){
   cx.clearRect(0,0,cv.width,cv.height);
@@ -175,8 +171,7 @@ document.getElementById("uB").onclick=function(){if(dir.y!==1)nextDir={x:0,y:-1}
 document.getElementById("dB").onclick=function(){if(dir.y!==-1)nextDir={x:0,y:1}};
 document.getElementById("lB").onclick=function(){if(dir.x!==1)nextDir={x:-1,y:0}};
 document.getElementById("rB").onclick=function(){if(dir.x!==-1)nextDir={x:1,y:0}};
-document.getElementById("menuBtn").onclick=init;
-document.getElementById("overBtn").onclick=init;
+document.getElementById("MB").onclick=init;document.getElementById("OB").onclick=init;
 
 document.getElementById("bst").textContent=best;
 snake=[{x:8,y:10},{x:7,y:10},{x:6,y:10}];dir={x:1,y:0};nextDir={x:1,y:0};food=null;sfood=null;
